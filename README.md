@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="web/img/banner.png" alt="GemmaPrompt — every model wants a different prompt. She knows all of them." width="100%">
+</p>
+
 # GemmaPrompt ★
 
 A local prompt enhancer for ComfyUI diffusion models, with **Gemma-chan** as your
@@ -181,8 +185,10 @@ Environment equivalents: `GEMMA_BACKEND`, `GEMMA_API_KEY`, `GEMMA_TAGS`,
   localhost.
 - `Ctrl/Cmd+Enter` in the idea box generates. `Esc` closes any drawer.
 - Favourites, history and settings live in `localStorage`.
-- Gemma-chan was generated locally with Anima + the Impact Pack detailer chain,
-  and lives in `web/img/`.
+- Gemma-chan was drawn locally: Anima for the first pass, then FLUX.2 Klein 9B
+  edit to clean up the expression set. The banner background is Klein edit too —
+  she was composited onto a wide canvas and the white was replaced in one edit
+  pass. Everything lives in `web/img/`.
 
 Credit: the H3 reference guides in `skills/` are MiniMax's, taken unmodified
 from the MiniMax-H3 repository.
