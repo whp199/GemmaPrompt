@@ -1,0 +1,9 @@
+# MiniMax's own reference guides — fetched on first run, not redistributed.
+# See NOTICE.md.
+skills/h3-base-modes.txt
+skills/h3-full-reference.txt
+
+.miku.pid
+__pycache__/
+*.pyc
+.DS_Store

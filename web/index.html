@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MikuPrompt</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%8E%A4</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">01</span>
+    <h1>Miku<span>Prompt</span></h1>
+    <span class="brand-note">prompt engineering for ComfyUI</span>
+  </div>
+  <div class="topbar-right">
+    <div class="status" id="status" title="Backend status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">connecting…</span>
+    </div>
+    <button class="vram" id="vram" title="Free the LLM's VRAM for ComfyUI" hidden>
+      <span class="vram-bar"><i id="vramFill"></i></span>
+      <span id="vramText">—</span>
+      <b>free</b>
+    </button>
+    <select id="llmModel" class="mini-select" title="Backend model"></select>
+    <button class="icon-btn" id="openSettings" title="Settings">⚙</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ── models ────────────────────────────────────────────────── -->
+  <aside class="col col-models">
+    <div class="miku">
+      <div class="miku-portrait">
+        <img id="mikuImg" src="/img/miku-welcome.webp" alt="Miku, your prompt maid">
+        <span class="miku-id"><b>Miku</b><i>your prompt maid</i></span>
+      </div>
+      <div class="bubble" id="mikuSay">Welcome back, Master. Pick a model and tell me what you'd like to see ♪</div>
+    </div>
+    <div class="col-head"><h2>Target model</h2></div>
+    <div class="scroll" id="profileList"></div>
+    <div class="model-meta" id="profileMeta"></div>
+  </aside>
+
+  <!-- ── composer ──────────────────────────────────────────────── -->
+  <section class="col col-compose">
+    <div class="col-head">
+      <h2>Your idea</h2>
+      <div class="head-actions">
+        <button class="ghost-btn" id="clearIdea">clear</button>
+      </div>
+    </div>
+
+    <div class="scroll compose-scroll">
+      <textarea id="idea" class="idea" rows="5"
+        placeholder="miku on a rooftop at night, city lights below, dramatic&#10;&#10;Rough is fine — that's the point."></textarea>
+
+      <!-- reference images -->
+      <div class="block" id="visionBlock">
+        <div class="block-head">
+          <h3>Reference images</h3>
+          <span class="badge" id="visionBadge">vision</span>
+          <div class="spacer"></div>
+          <select id="imageMode" class="mini-select">
+            <option value="inform">inform the prompt</option>
+            <option value="describe">reproduce this image</option>
+            <option value="style">style only</option>
+          </select>
+          <button class="ghost-btn" id="addImage">+ add</button>
+        </div>
+        <div class="dropzone" id="dropzone">
+          <div class="thumbs" id="thumbs"></div>
+          <p class="dz-hint">drop images here, paste, or click <b>+ add</b> — Gemma reads them</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      </div>
+
+      <!-- H3 controls -->
+      <div class="block h3-block" id="h3Block" hidden>
+        <div class="block-head"><h3>MiniMax H3</h3><span class="badge alt">structured</span></div>
+        <div class="grid2">
+          <label>Mode
+            <select id="h3Mode">
+              <option value="ref2va">Ref2VA — full reference (6 sections)</option>
+              <option value="t2va">T2VA — text only</option>
+              <option value="i2va">I2VA — first frame</option>
+              <option value="fl2va">FL2VA — first + last frame</option>
+              <option value="l2va">L2VA — last frame</option>
+            </select>
+          </label>
+          <label>Duration
+            <div class="row-inline">
+              <input type="range" id="h3Duration" min="2" max="15" step="0.5" value="8">
+              <output id="h3DurationOut">8.0s</output>
+            </div>
+          </label>
+        </div>
+        <div class="grid2">
+          <label>Shots
+            <select id="h3Shots">
+              <option value="">auto</option>
+              <option value="1">1 — single continuous</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </label>
+          <label>Reference labels
+            <input type="text" id="h3Labels" placeholder="e.g. img 1 = Subject 1, img 2 = Picture 1 first frame">
+          </label>
+        </div>
+        <label>Dialogue <span class="lbl-hint">verbatim, kept inside &lt;d&gt; tags</span>
+          <textarea id="h3Dialogue" rows="2" placeholder="GET READY TO MEET YOUR MAKER"></textarea>
+        </label>
+      </div>
+
+      <!-- artists -->
+      <div class="block" id="artistBlock">
+        <div class="block-head">
+          <h3>Artists</h3>
+          <div class="spacer"></div>
+          <button class="ghost-btn" id="openArtists">browse 59k ▸</button>
+        </div>
+        <div class="chips" id="artistChips"><span class="empty">none — booru artist tags are Anima's strongest style lever</span></div>
+      </div>
+
+      <!-- tags -->
+      <div class="block" id="tagBlock">
+        <div class="block-head">
+          <h3>Tags</h3>
+          <div class="spacer"></div>
+          <button class="ghost-btn" id="openTags">tag sets ▸</button>
+        </div>
+        <div class="chips" id="tagChips"><span class="empty">none selected</span></div>
+      </div>
+
+      <!-- options -->
+      <div class="block">
+        <div class="block-head"><h3>Options</h3></div>
+        <div class="opt-row">
+          <label class="check" id="negWrap"><input type="checkbox" id="optNegative"> negative prompt</label>
+          <label class="inline-field">aspect
+            <select id="optAspect">
+              <option value="">—</option>
+              <option value="1:1">1:1</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="3:2">3:2</option>
+              <option value="2:3">2:3</option>
+              <option value="21:9">21:9</option>
+            </select>
+          </label>
+          <label class="inline-field">variations
+            <select id="optVariations">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="compose-foot">
+      <button class="go" id="go"><span class="go-note">♪</span> Enhance</button>
+      <button class="stop" id="stop" hidden>stop</button>
+    </div>
+  </section>
+
+  <!-- ── output ────────────────────────────────────────────────── -->
+  <section class="col col-out">
+    <div class="col-head">
+      <h2>Prompt</h2>
+      <div class="head-actions">
+        <button class="ghost-btn" id="openHistory">history</button>
+        <button class="ghost-btn primary" id="copyOut">copy</button>
+      </div>
+    </div>
+    <div class="scroll out-scroll">
+      <details class="think" id="thinkWrap" hidden>
+        <summary>reasoning</summary>
+        <pre id="thinkOut"></pre>
+      </details>
+      <pre class="out" id="out"><span class="placeholder">Pick a model, describe your idea, hit <b>Enhance</b>.
+
+MikuPrompt loads that model's prompting skill into Gemma and writes in its native dialect — booru tags for Anima, prose for Klein and Krea 2, the full six-section rewrite for MiniMax H3.</span></pre>
+      <div class="neg-out" id="negOut" hidden>
+        <div class="neg-head">negative <button class="ghost-btn" id="copyNeg">copy</button></div>
+        <pre id="negText"></pre>
+      </div>
+    </div>
+    <div class="out-foot" id="outFoot"></div>
+  </section>
+</main>
+
+<!-- ── artist browser ──────────────────────────────────────────── -->
+<div class="drawer" id="artistDrawer" hidden>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <h2>Danbooru artists</h2>
+      <div class="spacer"></div>
+      <button class="ghost-btn" id="exportArtists" title="Write favourites to ComfyUI's artist dropdown lists">→ ComfyUI</button>
+      <button class="icon-btn" id="closeArtists">✕</button>
+    </div>
+    <div class="drawer-tools">
+      <input type="search" id="artistSearch" class="search" placeholder="search 59,201 artists…" autocomplete="off">
+      <div class="seg" id="artistTab">
+        <button class="on" data-tab="all">all</button>
+        <button data-tab="fav">favourites <span id="favCount">0</span></button>
+      </div>
+    </div>
+    <div class="drawer-body" id="artistResults"></div>
+    <div class="drawer-foot">
+      <span class="hint">click to add · ★ to favourite · post counts from your local tag database</span>
+      <button class="ghost-btn" id="loadMoreArtists" hidden>load more</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── tag browser ─────────────────────────────────────────────── -->
+<div class="drawer" id="tagDrawer" hidden>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <h2>Tags</h2>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="closeTags">✕</button>
+    </div>
+    <div class="drawer-tools">
+      <input type="search" id="tagSearch" class="search" placeholder="search all 150,098 tags…" autocomplete="off">
+      <select id="tagKind" class="mini-select">
+        <option value="">all kinds</option>
+        <option value="general">general</option>
+        <option value="character">character</option>
+        <option value="copyright">copyright</option>
+        <option value="meta">meta</option>
+      </select>
+    </div>
+    <div class="drawer-body" id="tagResults"></div>
+  </div>
+</div>
+
+<!-- ── settings ────────────────────────────────────────────────── -->
+<div class="drawer" id="settingsDrawer" hidden>
+  <div class="drawer-panel narrow">
+    <div class="drawer-head">
+      <h2>Settings</h2>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="closeSettings">✕</button>
+    </div>
+    <div class="drawer-body pad">
+
+      <h3 class="sect">Backend</h3>
+      <p class="sect-hint">Any OpenAI-compatible server — LM Studio, llama.cpp,
+        Ollama, KoboldCpp, text-gen-webui, TabbyAPI, vLLM, SGLang.</p>
+      <label class="stack">Base URL
+        <div class="row-inline">
+          <input type="text" id="backendUrl" placeholder="http://127.0.0.1:1234/v1" spellcheck="false">
+          <button class="ghost-btn" id="detectBackend">scan</button>
+        </div>
+      </label>
+      <div class="found" id="foundBackends"></div>
+      <label class="stack">API key <span class="lbl-hint">optional — most local servers ignore it</span>
+        <input type="password" id="apiKey" placeholder="leave blank for local" autocomplete="off">
+      </label>
+
+      <h3 class="sect">VRAM</h3>
+      <p class="sect-hint">The LLM and your diffusion model compete for the same
+        card. Unloading after each prompt frees the GPU so ComfyUI can load
+        immediately — works with LM Studio (via the <code>lms</code> CLI) and Ollama.</p>
+      <label class="check big"><input type="checkbox" id="unloadAfter"> unload the model after each prompt</label>
+
+      <h3 class="sect">Thinking</h3>
+      <p class="sect-hint">Gemma 4 can reason before answering. Reasoning is always
+        stripped from the copied prompt — this only controls whether it happens.</p>
+      <div class="seg wide" id="thinkMode">
+        <button data-v="off" class="on">off</button>
+        <button data-v="on">on</button>
+        <button data-v="prefill">prefill</button>
+      </div>
+      <label class="stack" id="prefillWrap" hidden>Prefill
+        <span class="lbl-hint">seeds the assistant turn — the model continues from this text</span>
+        <textarea id="thinkPrefill" rows="3" placeholder="&lt;think&gt;The target is Anima, so I need comma-separated booru tags. Starting with the quality preamble…"></textarea>
+      </label>
+
+      <h3 class="sect">System prompt</h3>
+      <p class="sect-hint">Injected alongside the model's built-in skill. Highest priority.</p>
+      <div class="seg wide" id="sysMode">
+        <button data-v="append" class="on">append</button>
+        <button data-v="prepend">prepend</button>
+        <button data-v="replace">replace all</button>
+      </div>
+      <textarea id="sysExtra" rows="5" placeholder="e.g. Always compose for a vertical phone wallpaper. Never include text or signage."></textarea>
+
+      <h3 class="sect">Sampling</h3>
+      <div class="grid2">
+        <label class="stack">Temperature <span class="val" id="tempOut">0.85</span>
+          <input type="range" id="temp" min="0" max="1.5" step="0.05" value="0.85">
+        </label>
+        <label class="stack">Max tokens
+          <input type="number" id="maxTokens" min="256" max="16384" step="256" value="2048">
+        </label>
+      </div>
+
+      <h3 class="sect">Diagnostics</h3>
+      <div class="diag" id="diag"></div>
+      <button class="ghost-btn" id="dryRun">show assembled system prompt</button>
+      <pre class="dry" id="dryOut" hidden></pre>
+
+      <h3 class="sect">Reset</h3>
+      <button class="ghost-btn danger" id="resetAll">clear saved settings, favourites & history</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── history ─────────────────────────────────────────────────── -->
+<div class="drawer" id="historyDrawer" hidden>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <h2>History</h2>
+      <div class="spacer"></div>
+      <button class="ghost-btn" id="clearHistory">clear</button>
+      <button class="icon-btn" id="closeHistory">✕</button>
+    </div>
+    <div class="drawer-body" id="historyList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
