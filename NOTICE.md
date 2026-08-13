@@ -15,15 +15,15 @@ the download is skipped. H3 mode still runs without them — `skills/h3.md` carr
 the field names, section order and hard rules — but the output will be less
 reliable, since the upstream guides are the normative spec.
 
-## Hatsune Miku
+## Gemma-chan
 
-Hatsune Miku is a character owned by Crypton Future Media, Inc. The artwork in
-`web/img/` was generated locally with Stable Diffusion and is used here under the
-spirit of the [Piapro Character Licence](https://piapro.net/intl/en_for_creators.html),
-which permits non-commercial derivative works. This project is free, non-commercial
-and unaffiliated with Crypton Future Media.
+Gemma-chan is an original mascot for this project. The artwork in `web/img/` was
+generated locally with Stable Diffusion (Anima) and is covered by this
+repository's MIT licence along with everything else here. She is not affiliated
+with, or endorsed by, Google or the Gemma model team — the name is affectionate,
+not official.
 
 ## Danbooru tag data
 
-MikuPrompt reads the tag autocomplete database already installed in your ComfyUI
+GemmaPrompt reads the tag autocomplete database already installed in your ComfyUI
 (`comfyui-custom-scripts`). No tag data is bundled with this repository.

@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MikuPrompt</title>
+<title>GemmaPrompt</title>
 <link rel="stylesheet" href="/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%8E%A4</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%E2%AD%90</text></svg>">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">01</span>
-    <h1>Miku<span>Prompt</span></h1>
-    <span class="brand-note">prompt engineering for ComfyUI</span>
+    <span class="brand-mark">★</span>
+    <h1>Gemma<span>Prompt</span></h1>
+    <span class="brand-note">prompt engineering for ComfyUI, supervised</span>
   </div>
   <div class="topbar-right">
     <div class="status" id="status" title="Backend status">
@@ -26,6 +26,7 @@
       <b>free</b>
     </button>
     <select id="llmModel" class="mini-select" title="Backend model"></select>
+    <button class="help-btn" id="openTour" title="Let Gemma-chan show you around">★ tour</button>
     <button class="icon-btn" id="openSettings" title="Settings">⚙</button>
   </div>
 </header>
@@ -34,14 +35,14 @@
 
   <!-- ── models ────────────────────────────────────────────────── -->
   <aside class="col col-models">
-    <div class="miku">
-      <div class="miku-portrait">
-        <img id="mikuImg" src="/img/miku-welcome.webp" alt="Miku, your prompt maid">
-        <span class="miku-id"><b>Miku</b><i>your prompt maid</i></span>
+    <div class="gemma">
+      <div class="gemma-portrait">
+        <img id="gemmaImg" src="/img/gemma-idle.webp" alt="Gemma-chan">
+        <span class="gemma-id"><b>Gemma-chan</b><i>prompt supervisor</i></span>
       </div>
-      <div class="bubble" id="mikuSay">Welcome back, Master. Pick a model and tell me what you'd like to see ♪</div>
+      <div class="bubble" id="gemmaSay">Oh, you're back. Pick a model and tell me what you want — and be specific, I'm not a mind reader.</div>
     </div>
-    <div class="col-head"><h2>Target model</h2></div>
+    <div class="col-head"><h2>Who's it for?</h2></div>
     <div class="scroll" id="profileList"></div>
     <div class="model-meta" id="profileMeta"></div>
   </aside>
@@ -49,20 +50,20 @@
   <!-- ── composer ──────────────────────────────────────────────── -->
   <section class="col col-compose">
     <div class="col-head">
-      <h2>Your idea</h2>
+      <h2>What are we making?</h2>
       <div class="head-actions">
-        <button class="ghost-btn" id="clearIdea">clear</button>
+        <button class="ghost-btn" id="clearIdea">wipe it</button>
       </div>
     </div>
 
     <div class="scroll compose-scroll">
       <textarea id="idea" class="idea" rows="5"
-        placeholder="miku on a rooftop at night, city lights below, dramatic&#10;&#10;Rough is fine — that's the point."></textarea>
+        placeholder="a girl on a rooftop at night, city lights below, dramatic&#10;&#10;Rough is fine. That's literally what I'm here for."></textarea>
 
       <!-- reference images -->
       <div class="block" id="visionBlock">
         <div class="block-head">
-          <h3>Reference images</h3>
+          <h3>Show me a picture</h3>
           <span class="badge" id="visionBadge">vision</span>
           <div class="spacer"></div>
           <select id="imageMode" class="mini-select">
@@ -70,18 +71,18 @@
             <option value="describe">reproduce this image</option>
             <option value="style">style only</option>
           </select>
-          <button class="ghost-btn" id="addImage">+ add</button>
+          <button class="ghost-btn" id="addImage">+ drop one in</button>
         </div>
         <div class="dropzone" id="dropzone">
           <div class="thumbs" id="thumbs"></div>
-          <p class="dz-hint">drop images here, paste, or click <b>+ add</b> — Gemma reads them</p>
+          <p class="dz-hint">drop, paste, or click <b>+ drop one in</b> — I'll actually look at it</p>
         </div>
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
       </div>
 
       <!-- H3 controls -->
       <div class="block h3-block" id="h3Block" hidden>
-        <div class="block-head"><h3>MiniMax H3</h3><span class="badge alt">structured</span></div>
+        <div class="block-head"><h3>H3, the fussy one</h3><span class="badge alt">structured</span></div>
         <div class="grid2">
           <label>Mode
             <select id="h3Mode">
@@ -121,28 +122,28 @@
       <!-- artists -->
       <div class="block" id="artistBlock">
         <div class="block-head">
-          <h3>Artists</h3>
+          <h3>Steal a style</h3>
           <div class="spacer"></div>
-          <button class="ghost-btn" id="openArtists">browse 59k ▸</button>
+          <button class="ghost-btn" id="openArtists">all 59k of them ▸</button>
         </div>
-        <div class="chips" id="artistChips"><span class="empty">none — booru artist tags are Anima's strongest style lever</span></div>
+        <div class="chips" id="artistChips"><span class="empty">Nothing picked. Artist tags are the single strongest style lever Anima has — go on.</span></div>
       </div>
 
       <!-- tags -->
       <div class="block" id="tagBlock">
         <div class="block-head">
-          <h3>Tags</h3>
+          <h3>Extra tags</h3>
           <div class="spacer"></div>
-          <button class="ghost-btn" id="openTags">tag sets ▸</button>
+          <button class="ghost-btn" id="openTags">pick from my sets ▸</button>
         </div>
-        <div class="chips" id="tagChips"><span class="empty">none selected</span></div>
+        <div class="chips" id="tagChips"><span class="empty">Empty. I'll choose for you, but you won't like it.</span></div>
       </div>
 
       <!-- options -->
       <div class="block">
-        <div class="block-head"><h3>Options</h3></div>
+        <div class="block-head"><h3>Fiddly bits</h3></div>
         <div class="opt-row">
-          <label class="check" id="negWrap"><input type="checkbox" id="optNegative"> negative prompt</label>
+          <label class="check" id="negWrap"><input type="checkbox" id="optNegative"> write me a negative too</label>
           <label class="inline-field">aspect
             <select id="optAspect">
               <option value="">—</option>
@@ -167,7 +168,7 @@
     </div>
 
     <div class="compose-foot">
-      <button class="go" id="go"><span class="go-note">♪</span> Enhance</button>
+      <button class="go" id="go"><span class="go-note">★</span> Fix my prompt</button>
       <button class="stop" id="stop" hidden>stop</button>
     </div>
   </section>
@@ -175,9 +176,9 @@
   <!-- ── output ────────────────────────────────────────────────── -->
   <section class="col col-out">
     <div class="col-head">
-      <h2>Prompt</h2>
+      <h2>Here. Take it.</h2>
       <div class="head-actions">
-        <button class="ghost-btn" id="openHistory">history</button>
+        <button class="ghost-btn" id="openHistory">old ones</button>
         <button class="ghost-btn primary" id="copyOut">copy</button>
       </div>
     </div>
@@ -186,9 +187,11 @@
         <summary>reasoning</summary>
         <pre id="thinkOut"></pre>
       </details>
-      <pre class="out" id="out"><span class="placeholder">Pick a model, describe your idea, hit <b>Enhance</b>.
+      <pre class="out" id="out"><span class="placeholder">Pick a model, type your idea, and I'll do the hard part.
 
-MikuPrompt loads that model's prompting skill into Gemma and writes in its native dialect — booru tags for Anima, prose for Klein and Krea 2, the full six-section rewrite for MiniMax H3.</span></pre>
+Every model wants a different dialect — booru tags for Anima, prose for Klein and Krea 2, six labelled sections for MiniMax H3. Get it wrong and your output looks bad for no reason. I know all of them, so you don't have to.
+
+New here? Hit <b>★ tour</b> up top and I'll show you around. Try not to break anything.</span></pre>
       <div class="neg-out" id="negOut" hidden>
         <div class="neg-head">negative <button class="ghost-btn" id="copyNeg">copy</button></div>
         <pre id="negText"></pre>
@@ -323,10 +326,29 @@ MikuPrompt loads that model's prompting skill into Gemma and writes in its nativ
     <div class="drawer-head">
       <h2>History</h2>
       <div class="spacer"></div>
-      <button class="ghost-btn" id="clearHistory">clear</button>
+      <button class="ghost-btn" id="clearHistory">wipe it</button>
       <button class="icon-btn" id="closeHistory">✕</button>
     </div>
     <div class="drawer-body" id="historyList"></div>
+  </div>
+</div>
+
+<div class="tour" id="tour" hidden>
+  <div class="tour-veil" id="tourVeil"></div>
+  <div class="tour-hole" id="tourHole"></div>
+  <div class="tour-card" id="tourCard">
+    <div class="tour-top">
+      <div class="tour-face"><img id="tourFace" src="/img/gemma-point.webp" alt=""></div>
+      <div class="tour-said">
+        <h3 id="tourTitle"></h3>
+        <p id="tourText"></p>
+      </div>
+    </div>
+    <div class="tour-foot">
+      <div class="tour-dots" id="tourDots"></div>
+      <button class="tour-skip" id="tourSkip">skip</button>
+      <button class="tour-btn" id="tourNext">next</button>
+    </div>
   </div>
 </div>
 

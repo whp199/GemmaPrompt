@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 MikuPrompt contributors
+Copyright (c) 2026 GemmaPrompt contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,5 +22,5 @@ SOFTWARE.
 
 ---
 
-This licence covers the MikuPrompt source, skills and configuration. It does
+This licence covers the GemmaPrompt source, skills and configuration. It does
 not cover the third-party material described in NOTICE.md.

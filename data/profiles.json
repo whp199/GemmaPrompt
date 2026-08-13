@@ -28,7 +28,7 @@
       "workflow": "01-anima-t2i",
       "meta": "anima-base-v1.0 · 30 steps / CFG 4.0 · euler + simple",
       "temperature": 0.85,
-      "miku": "Anima thinks in Danbooru tags, not sentences. Tell me your idea however you like and I'll sort it into the right tag order — quality first, then the artist, then her, then the scene."
+      "gemma": "Anima doesn't understand your rambling — it only speaks Danbooru tags, in a specific order. Good thing I've memorised all 150,000 of them. Just describe it however and I'll sort it out. ...Obviously."
     },
     "krea2": {
       "label": "Krea 2 Turbo",
@@ -44,7 +44,7 @@
       "workflow": "03-krea2-turbo-t2i",
       "meta": "krea2_turbo_fp8 · 8 steps / CFG 1.0 · euler + simple",
       "temperature": 0.9,
-      "miku": "Krea 2 loves a long, rich description. The more texture, light and lens detail I give it, the better it looks — so I'll write you a proper paragraph."
+      "gemma": "Krea 2 is greedy. It wants a long, rich paragraph — texture, light, the lens, all of it. Most people write two words and wonder why it looks flat. You're not going to do that, are you?"
     },
     "klein4b": {
       "label": "FLUX.2 Klein 4B",
@@ -60,7 +60,7 @@
       "workflow": "04-klein-t2i",
       "meta": "flux-2-klein-4b · 4 steps / CFG 1.0 · Flux2Scheduler",
       "temperature": 0.8,
-      "miku": "Klein reads prompts like a photo caption. I'll keep it to a few dense sentences — and it renders real text beautifully if you want a sign or a label."
+      "gemma": "Klein reads like a photo caption, so I keep it tight. It renders real text properly too, so if you want a sign or a label, say so. I'll spell it right even if you can't."
     },
     "klein9b": {
       "label": "FLUX.2 Klein 9B",
@@ -76,7 +76,7 @@
       "workflow": "08-klein-9b-t2i",
       "meta": "flux-2-klein-9b-fp8 · 8 steps / CFG 1.0 · Flux2Scheduler",
       "temperature": 0.8,
-      "miku": "The 9B is the same dialect as the 4B, just more capable. Prose, no tags, no negative — I'll handle the shape of it."
+      "gemma": "Same dialect as the 4B, just smarter. Prose, no tags, no negative prompt. Don't try to help — I've got it."
     },
     "kleinedit": {
       "label": "Klein 9B Edit",
@@ -93,7 +93,7 @@
       "workflow": "07-klein-9b-edit",
       "meta": "flux-2-klein-9b-fp8 · edit · 4 steps / CFG 1.0",
       "temperature": 0.6,
-      "miku": "For editing, I only describe what should *change*. Naming things you want left alone is what makes edits drift — so drop your image in and tell me the change."
+      "gemma": "Editing is the one people always get wrong. You only describe what <em>changes</em> — list the stuff you like and the model reconsiders all of it. Give me the picture and the change, nothing else."
     },
     "zimage": {
       "label": "Z-Image Turbo",
@@ -109,7 +109,7 @@
       "workflow": "02-zimage-turbo-t2i",
       "meta": "z_image_turbo_bf16 · 9 steps / CFG 1.0 · res_multistep",
       "temperature": 0.85,
-      "miku": "Z-Image likes a medium paragraph — more than a caption, less than an essay. I'll aim right for that middle."
+      "gemma": "Z-Image wants a medium paragraph. Longer than a caption, shorter than an essay. Fussy? A little. I'll hit it exactly."
     },
     "zimagebase": {
       "label": "Z-Image Base",
@@ -125,7 +125,7 @@
       "workflow": "02-zimage-turbo-t2i",
       "meta": "z_image_bf16 · 25 steps / CFG 4.0",
       "temperature": 0.85,
-      "miku": "Base runs at CFG 4.0, so negative prompts actually work here. Tick the negative box and I'll write you one."
+      "gemma": "Base runs at CFG 4.0, so negatives actually do something here — unlike Turbo, where people write them anyway. Tick the box and I'll write you a real one."
     },
     "h3": {
       "label": "MiniMax H3",
@@ -142,7 +142,7 @@
       "meta": "minimax_h3_ref2va_nvfp4 · Qwen3-VL-32B · 24fps · ~15s max",
       "temperature": 0.7,
       "maxTokens": 4096,
-      "miku": "H3 is the fussy one — six labelled sections, exact field names, strict timing. I know the whole spec by heart, so just tell me the scene and it comes out correct."
+      "gemma": "Ugh, H3. Six labelled sections, exact field names, cut times that have to land inside the duration. Everyone gets it wrong. I know the entire spec by heart, so just tell me the scene and stop worrying."
     },
     "wan22t2v": {
       "label": "Wan 2.2 T2V",
@@ -158,7 +158,7 @@
       "workflow": "05-wan22-t2v",
       "meta": "Wan 2.2 A14B MoE · 4 steps / CFG 1.0",
       "temperature": 0.85,
-      "miku": "For video I describe *change* — one action, one camera move, one continuous shot. Five seconds goes faster than you'd think."
+      "gemma": "Video means describing <em>change</em>, not a pretty still. One action, one camera move, one shot. Try to cram in three things and it turns to mush — I'll stop you."
     },
     "wan22i2v": {
       "label": "Wan 2.2 I2V",
@@ -175,7 +175,7 @@
       "workflow": "06-wan22-i2v",
       "meta": "Wan 2.2 A14B MoE · 4 steps / CFG 1.0",
       "temperature": 0.85,
-      "miku": "Drop your starting image in and tell me what happens next. I'll describe the motion, not the picture you already have."
+      "gemma": "Give me your starting frame and tell me what happens next. And I mean what <em>happens</em> — don't describe the picture, I can already see it."
     },
     "ltx23": {
       "label": "LTX 2.3",
@@ -191,7 +191,7 @@
       "workflow": "09-ltx23-t2v",
       "meta": "ltx-2.3-22b-dev-fp8",
       "temperature": 0.85,
-      "miku": "LTX wants motion described plainly — what moves, which way, how fast. I'll keep it to a single clean shot."
+      "gemma": "LTX wants motion stated plainly. What moves, which way, how fast. Simple enough that even you can manage the idea part."
     }
   }
 }

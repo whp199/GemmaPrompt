@@ -1,7 +1,7 @@
-# MikuPrompt ♪
+# GemmaPrompt ★
 
-A local prompt enhancer for ComfyUI diffusion models, with Hatsune Miku as your
-prompt maid.
+A local prompt enhancer for ComfyUI diffusion models, with **Gemma-chan** as your
+(extremely reluctant) prompt supervisor.
 
 You type a rough idea. She rewrites it in the **native prompt dialect of the
 model you're actually going to run** — Danbooru tags for Anima, dense prose for
@@ -33,7 +33,7 @@ you real quality:
 | MiniMax H3 | six labelled sections, exact field names, strict timing | anything else |
 | Wan 2.2 / LTX 2.3 | one shot, one action, one camera move | multi-beat scripts |
 
-MikuPrompt keeps a written skill for each of these and loads the right one into
+GemmaPrompt keeps a written skill for each of these and loads the right one into
 the LLM before it writes a single word.
 
 ---
@@ -47,14 +47,14 @@ the LLM before it writes a single word.
 - **A vision-capable model** if you want to use reference images (optional).
 - **Enough context.** The H3 skill is ~7.8k tokens of spec on its own — set your
   context to **32768** for H3, or 16384 as a bare minimum. If you run out,
-  MikuPrompt tells you exactly that instead of returning a blank box.
+  GemmaPrompt tells you exactly that instead of returning a blank box.
 - **ComfyUI** (optional) — only for the tag database and artist-list export.
 
 ---
 
 ## Setting the backend
 
-MikuPrompt hunts for a server on the usual local ports at startup and prints
+GemmaPrompt hunts for a server on the usual local ports at startup and prints
 what it finds. To change it at runtime open **⚙ → Backend**, hit **scan**, and
 click whichever one you want. Or paste any base URL and it will be normalised
 (`localhost:8080` → `http://localhost:8080/v1`).
@@ -73,10 +73,16 @@ Ports probed automatically: 1234 (LM Studio), 8080/8081 (llama.cpp), 11434
 
 ## What's in it
 
+### A walkthrough that actually walks you through it
+First run drops you into a guided tour — Gemma-chan spotlights each control in
+turn and explains what it's for and why it matters. Hit **★ tour** any time to
+run it again. Steps for controls that aren't relevant to your current model are
+skipped automatically.
+
 ### Model profiles
 Eleven profiles wired to the workflows in
 `ComfyUI/user/default/workflows/2026-current/`. Picking one swaps the loaded
-skill, the sensible temperature, the available options, and what Miku tells you
+skill, the sensible temperature, the available options, and what Gemma-chan tells you
 about how that model likes to be talked to.
 
 ### Danbooru artist browser
@@ -142,7 +148,7 @@ skills/
   h3-base-modes.txt     upstream MiniMax guide (T2VA/I2VA/FL2VA/L2VA)
   h3-full-reference.txt upstream MiniMax guide (Ref2VA)
 data/
-  profiles.json         model profiles + Miku's lines
+  profiles.json         model profiles + Gemma-chan's lines
   tagsets.json          curated Danbooru tag groups
 web/                 index.html, style.css, app.js, img/
 ```
@@ -164,8 +170,8 @@ there is no build step and nothing is compiled in.
 --comfy PATH                 ComfyUI root, for artist-list export
 ```
 
-Environment equivalents: `MIKU_BACKEND`, `MIKU_API_KEY`, `MIKU_TAGS`,
-`MIKU_COMFY`.
+Environment equivalents: `GEMMA_BACKEND`, `GEMMA_API_KEY`, `GEMMA_TAGS`,
+`GEMMA_COMFY`.
 
 ---
 
@@ -175,8 +181,8 @@ Environment equivalents: `MIKU_BACKEND`, `MIKU_API_KEY`, `MIKU_TAGS`,
   localhost.
 - `Ctrl/Cmd+Enter` in the idea box generates. `Esc` closes any drawer.
 - Favourites, history and settings live in `localStorage`.
-- Miku was generated locally with Anima + the Impact Pack detailer chain, at
-  `web/img/`.
+- Gemma-chan was generated locally with Anima + the Impact Pack detailer chain,
+  and lives in `web/img/`.
 
 Credit: the H3 reference guides in `skills/` are MiniMax's, taken unmodified
 from the MiniMax-H3 repository.

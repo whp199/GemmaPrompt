@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MikuPrompt — a local prompt enhancer for ComfyUI diffusion models.
+GemmaPrompt — a local prompt enhancer for ComfyUI diffusion models.
 
 Talks to any OpenAI-compatible chat endpoint: LM Studio, llama.cpp's
 llama-server, Ollama, KoboldCpp, text-generation-webui, TabbyAPI, vLLM, SGLang,
@@ -591,7 +591,7 @@ class ThinkSplitter:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MikuPrompt"
+    server_version = "GemmaPrompt"
     protocol_version = "HTTP/1.1"
 
     # -- plumbing ---------------------------------------------------------
@@ -922,25 +922,25 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="MikuPrompt server")
+    parser = argparse.ArgumentParser(description="GemmaPrompt server")
     parser.add_argument("--port", type=int, default=3939)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument(
         "--backend",
-        default=os.environ.get("MIKU_BACKEND", "http://127.0.0.1:1234/v1"),
+        default=os.environ.get("GEMMA_BACKEND", "http://127.0.0.1:1234/v1"),
         help="default OpenAI-compatible base URL; switchable from the UI",
     )
     parser.add_argument(
         "--api-key",
-        default=os.environ.get("MIKU_API_KEY", ""),
+        default=os.environ.get("GEMMA_API_KEY", ""),
         help="bearer token, if your backend requires one",
     )
-    parser.add_argument("--tags", default=os.environ.get("MIKU_TAGS", str(DEFAULT_TAGS)))
-    parser.add_argument("--comfy", default=os.environ.get("MIKU_COMFY", str(DEFAULT_COMFY)))
+    parser.add_argument("--tags", default=os.environ.get("GEMMA_TAGS", str(DEFAULT_TAGS)))
+    parser.add_argument("--comfy", default=os.environ.get("GEMMA_COMFY", str(DEFAULT_COMFY)))
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
-    print("\n  \033[96m♪ MikuPrompt\033[0m")
+    print("\n  \033[96m★ GemmaPrompt\033[0m")
     ensure_h3_guides()
     db = TagDB(Path(args.tags))
     profiles = load_profiles()
@@ -970,7 +970,7 @@ def main() -> int:
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n  bye ♪\n")
+        print("\n  bye ★\n")
     return 0
 
 

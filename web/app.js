@@ -1,10 +1,10 @@
-/* MikuPrompt — client */
+/* GemmaPrompt — client */
 
 const $ = (s) => document.querySelector(s);
 const LS = {
-  settings: 'mikuprompt.settings',
-  favs: 'mikuprompt.favourites',
-  history: 'mikuprompt.history',
+  settings: 'gemmaprompt.settings',
+  favs: 'gemmaprompt.favourites',
+  history: 'gemmaprompt.history',
 };
 
 const state = {
@@ -55,18 +55,20 @@ function toast(msg, bad = false) {
   toastTimer = setTimeout(() => (el.hidden = true), 2600);
 }
 
-/* ── miku, your prompt maid ─────────────────────────────────── */
+/* ── gemma-chan ─────────────────────────────────────────────── */
 
 const MOODS = {
-  idle: '/img/miku-welcome.webp',
-  thinking: '/img/miku-thinking.webp',
-  happy: '/img/miku-cheer.webp',
-  bow: '/img/miku-bow.webp',
+  idle: '/img/gemma-idle.webp',
+  smug: '/img/gemma-smug.webp',
+  thinking: '/img/gemma-thinking.webp',
+  proud: '/img/gemma-proud.webp',
+  fluster: '/img/gemma-fluster.webp',
+  point: '/img/gemma-point.webp',
 };
-let mikuMood = 'idle';
+let gemmaMood = 'idle';
 
-function miku(text, mood = 'idle', warn = false) {
-  const bubble = $('#mikuSay');
+function gemma(text, mood = 'idle', warn = false) {
+  const bubble = $('#gemmaSay');
   bubble.className = 'bubble' + (warn ? ' warn' : '');
   bubble.innerHTML = text;
   // restart the entrance animation so repeated lines still register
@@ -74,9 +76,9 @@ function miku(text, mood = 'idle', warn = false) {
   void bubble.offsetWidth;
   bubble.style.animation = '';
 
-  if (mood !== mikuMood && MOODS[mood]) {
-    mikuMood = mood;
-    const img = $('#mikuImg');
+  if (mood !== gemmaMood && MOODS[mood]) {
+    gemmaMood = mood;
+    const img = $('#gemmaImg');
     img.classList.add('swap');
     setTimeout(() => {
       img.src = MOODS[mood];
@@ -143,11 +145,11 @@ function selectProfile(id) {
   if (!p.negative) $('#optNegative').checked = false;
   renderChips();
 
-  let line = p.miku || `I'll write for <b>${esc(p.label)}</b>.`;
+  let line = p.gemma || `I'll write for <b>${esc(p.label)}</b>.`;
   if (p.visionRequired) {
     line += ' <em>This one needs an image to work from.</em>';
   }
-  miku(line, 'idle', !!p.visionRequired && !state.images.length);
+  gemma(line, 'idle', !!p.visionRequired && !state.images.length);
 }
 
 /* ── chips ──────────────────────────────────────────────────── */
@@ -155,7 +157,7 @@ function selectProfile(id) {
 function renderChips() {
   const ac = $('#artistChips');
   if (!state.artists.length) {
-    ac.innerHTML = '<span class="empty">none — booru artist tags are Anima\'s strongest style lever</span>';
+    ac.innerHTML = '<span class="empty">Nothing picked. Artist tags are the single strongest style lever Anima has — go on.</span>';
   } else {
     ac.innerHTML = '';
     state.artists.forEach((a, i) => {
@@ -173,7 +175,7 @@ function renderChips() {
   const tc = $('#tagChips');
   const all = [...state.tags.map((t) => [t, false]), ...state.negTags.map((t) => [t, true])];
   if (!all.length) {
-    tc.innerHTML = '<span class="empty">none selected</span>';
+    tc.innerHTML = "<span class=\"empty\">Empty. I'll choose for you, but you won't like it.</span>";
   } else {
     tc.innerHTML = '';
     all.forEach(([t, neg]) => {
@@ -233,9 +235,9 @@ async function addFiles(files) {
   renderThumbs();
   if (state.images.length) {
     const n = state.images.length;
-    miku(
-      `Got ${n === 1 ? 'your image' : n + ' images'}. I'll look at ${n === 1 ? 'it' : 'them'} properly and build the prompt from what's actually there.`,
-      'idle'
+    gemma(
+      `${n === 1 ? 'One image' : n + ' images'}, got it. I'll build the prompt from what's <em>actually</em> in ${n === 1 ? 'it' : 'them'} — not what you think is in ${n === 1 ? 'it' : 'them'}.`,
+      'smug'
     );
   }
 }
@@ -423,17 +425,27 @@ function splitNegative(text) {
   return [text.slice(0, match.index).trim(), text.slice(match.index + match[0].length).trim()];
 }
 
+const PRAISE = [
+  'There. Obviously perfect.',
+  'Done. You could at least look impressed.',
+  'That took me no effort at all, by the way.',
+  "Finished. ...It's good. Not that I care if you like it.",
+  "Hmph. I may have put a bit of work into that one.",
+  'Done. Try not to waste it on something boring.',
+];
+const praise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
+
 /* ── generate ───────────────────────────────────────────────── */
 
 async function generate() {
   const idea = $('#idea').value.trim();
   const p = state.profiles[state.current];
   if (!idea && !state.images.length) {
-    miku("Tell me what you'd like to see first — even something like <b>girl on a rooftop</b> is plenty to work with.", 'idle', true);
+    gemma("...You want me to work from <em>nothing</em>? Type something. <b>girl on a rooftop</b> would do. I'm good, not psychic.", 'idle', true);
     return toast('describe an idea first', true);
   }
   if (p.visionRequired && !state.images.length) {
-    miku(`<b>${esc(p.label)}</b> works from a picture. Drop one in the reference box and I'll take it from there.`, 'idle', true);
+    gemma(`<b>${esc(p.label)}</b> edits <em>pictures</em>. As in, one you give it. Drop an image in the reference box and try again.`, 'idle', true);
     return toast(p.label + ' needs a source image', true);
   }
 
@@ -478,10 +490,10 @@ async function generate() {
   $('#go').disabled = true;
   $('#stop').hidden = false;
   setStatus('busy', 'generating…');
-  miku(
+  gemma(
     state.images.length
-      ? 'Let me have a proper look at your image…'
-      : `Writing this in <b>${esc(p.label)}</b>'s dialect — one moment ♪`,
+      ? "Hmph. Let me actually <em>look</em> at this properly — unlike some people."
+      : `Fine. Rewriting this the way <b>${esc(p.label)}</b> actually wants it. Don't rush me.`,
     'thinking'
   );
 
@@ -527,7 +539,7 @@ async function generate() {
         } else if (msg.type === 'error') {
           $('#out').innerHTML = `<span class="err">${esc(msg.text)}</span>`;
           state.raw = '';
-          miku("Something went wrong talking to the model — the details are on the right.", 'idle', true);
+          gemma("Your backend isn't answering. That's <em>your</em> setup, not my problem — details on the right.", 'idle', true);
           toast('backend error', true);
         } else if (msg.type === 'unloading') {
           toast('freeing VRAM…');
@@ -562,7 +574,7 @@ async function generate() {
         state.profiles[state.current].family === 'h3'
           ? "the <b>Input Text (Prompt)</b> node in your H3 workflow"
           : "ComfyUI's <b>positive</b> box";
-      miku(`All done ♪ Hit <b>copy</b> and paste it into ${where}.`, 'happy');
+      gemma(`${praise()} Hit <b>copy</b> and put it in ${where}.`, Math.random() < 0.3 ? 'fluster' : 'proud');
       const words = main.trim().split(/\s+/).length;
       $('#outFoot').textContent = `${main.length} chars · ${words} words · ${elapsed}s · ${state.profiles[state.current].label}`;
       $('#outFoot').classList.add('show');
@@ -714,6 +726,149 @@ function renderHistory() {
     };
     box.appendChild(el);
   }
+}
+
+
+/* ── walkthrough ────────────────────────────────────────────── */
+
+/* Each step spotlights a real element and Gemma-chan explains it.
+   `when` skips steps whose target is hidden for the current profile. */
+const TOUR = [
+  {
+    el: '.gemma',
+    title: "So you're new.",
+    text: "I'm Gemma-chan. You type something lazy, I turn it into a prompt the model actually understands. " +
+          "It's not hard for me, so don't look so worried. Come on — I'll show you where everything is.",
+    mood: 'smug',
+  },
+  {
+    el: '.col-models',
+    title: 'Pick who it\'s for',
+    text: "Every one of these wants a <em>completely different</em> kind of text. Anima wants booru tags. " +
+          "Klein wants prose. H3 wants six labelled sections. Pick the one you're actually going to run — " +
+          "I change how I write based on this.",
+    mood: 'point',
+  },
+  {
+    el: '#idea',
+    title: 'Be as lazy as you like',
+    text: "Type your idea here. <b>Three words is fine.</b> That's the entire point of me — you bring the idea, " +
+          "I do the boring part. <em>Ctrl+Enter</em> runs it if you can't find the button.",
+    mood: 'idle',
+  },
+  {
+    el: '#visionBlock',
+    title: 'Or just show me',
+    text: "Drop an image in and I'll actually look at it. <b>Inform</b> builds on it, <b>reproduce</b> writes a prompt " +
+          "that recreates it, <b>style only</b> takes the look and leaves your subject alone.",
+    mood: 'point',
+    when: () => !$('#visionBlock').hidden,
+  },
+  {
+    el: '#h3Block',
+    title: 'H3 is the fussy one',
+    text: "Six sections, exact field names, cut times that must land inside the duration. Set the duration and mode here — " +
+          "I handle the rest of the spec so you don't have to read it.",
+    mood: 'thinking',
+    when: () => !$('#h3Block').hidden,
+  },
+  {
+    el: '#artistBlock',
+    title: 'Steal a style',
+    text: "All 59,201 Danbooru artist tags, sorted by post count. Artist tags are the <em>strongest</em> style lever " +
+          "Anima has — one changes the whole image. Star your favourites and I'll keep them.",
+    mood: 'smug',
+    when: () => !$('#artistBlock').hidden,
+  },
+  {
+    el: '#tagBlock',
+    title: 'Extra tags, if you insist',
+    text: "Curated sets for lighting, framing, expression, all that. Or search all 150,000. " +
+          "I'll slot whatever you pick into the correct position — order matters more than you think.",
+    mood: 'idle',
+    when: () => !$('#tagBlock').hidden,
+  },
+  {
+    el: '#go',
+    title: 'Then hit this',
+    text: "That's it. That's the whole job. I'll write it in the right dialect and you take the credit, as usual.",
+    mood: 'proud',
+  },
+  {
+    el: '.col-out',
+    title: 'And take your prompt',
+    text: "It streams in here. <b>copy</b> puts it on your clipboard, ready for ComfyUI. If I was thinking out loud, " +
+          "that's tucked away separately — it never ends up in what you copy.",
+    mood: 'point',
+  },
+  {
+    el: '#vram',
+    title: 'When the GPU runs out',
+    text: "Your LLM and your diffusion model fight over the same card. Click this and I'll get out of the way " +
+          "so ComfyUI can load. ...You're welcome.",
+    mood: 'fluster',
+    when: () => !$('#vram').hidden,
+  },
+  {
+    el: '#openSettings',
+    title: 'The rest lives in here',
+    text: "Backend URL, thinking mode, temperature, and the system prompt if you think you can do better than me. " +
+          "<em>You can't.</em> But it's there.",
+    mood: 'smug',
+  },
+];
+
+let tourSteps = [], tourAt = 0;
+
+function tourShow(i) {
+  const step = tourSteps[i];
+  if (!step) return tourEnd();
+  tourAt = i;
+
+  const target = document.querySelector(step.el);
+  const hole = $('#tourHole');
+  const card = $('#tourCard');
+
+  if (target) {
+    const r = target.getBoundingClientRect();
+    const pad = 6;
+    hole.style.cssText =
+      `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px`;
+
+    // place the card wherever there's room, preferring the side with space
+    const cw = Math.min(370, Math.max(240, innerWidth - 20));
+    const ch = 210, gap = 16;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, Math.max(lo, hi)));
+
+    let left = r.right + gap;
+    if (left + cw > innerWidth - 10) left = r.left - cw - gap;
+    left = clamp(left, 10, innerWidth - cw - 10);
+    const top = clamp(r.top, 10, innerHeight - ch - 10);
+    card.style.cssText = `left:${left}px;top:${top}px`;
+  } else {
+    hole.style.cssText = 'left:50%;top:50%;width:0;height:0';
+    card.style.cssText = `left:${(innerWidth - 370) / 2}px;top:${innerHeight / 2 - 110}px`;
+  }
+
+  $('#tourTitle').textContent = step.title;
+  $('#tourText').innerHTML = step.text;
+  $('#tourFace').src = MOODS[step.mood] || MOODS.idle;
+  $('#tourNext').textContent = i === tourSteps.length - 1 ? 'got it' : 'next';
+  $('#tourDots').innerHTML = tourSteps
+    .map((_, n) => `<i class="${n === i ? 'on' : ''}"></i>`)
+    .join('');
+}
+
+function tourStart() {
+  tourSteps = TOUR.filter((s) => !s.when || s.when());
+  $('#tour').hidden = false;
+  tourShow(0);
+}
+
+function tourEnd() {
+  $('#tour').hidden = true;
+  localStorage.setItem('gemmaprompt.toured', '1');
+  gemma("Right, that's everything. Go on then — make something.", 'smug');
 }
 
 /* ── wiring ─────────────────────────────────────────────────── */
@@ -931,6 +1086,14 @@ function init() {
     location.reload();
   };
 
+  $('#openTour').onclick = tourStart;
+  $('#tourNext').onclick = () => tourShow(tourAt + 1);
+  $('#tourSkip').onclick = tourEnd;
+  $('#tourVeil').onclick = tourEnd;
+  addEventListener('resize', () => {
+    if (!$('#tour').hidden) tourShow(tourAt);
+  });
+
   loadProfiles();
   loadTagSets();
   refreshModels();
@@ -946,6 +1109,9 @@ function init() {
         `<b>tag file</b>  ${esc(h.tagfile)}\n` +
         `<b>comfyui</b>   ${esc(h.comfy)}\n` +
         `<b>default</b>   ${esc(h.backend)}`;
+      if (!localStorage.getItem('gemmaprompt.toured')) {
+        setTimeout(tourStart, 700);
+      }
       if (!state.settings.backend) {
         state.settings.backend = h.backend;
         $('#backendUrl').value = h.backend;

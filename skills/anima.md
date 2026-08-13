@@ -96,8 +96,8 @@ Only emit this syntax when the user explicitly asks for variation or randomness.
 
 ## Worked example
 
-*User idea:* "miku on a rooftop at night, city below, dramatic"
+*User idea:* "girl on a rooftop at night, city below, dramatic"
 
 ```
-masterpiece, best quality, score_7, safe, vocaloid, hatsune miku, 1girl, solo, very long hair, twintails, aqua hair, aqua eyes, detached sleeves, necktie, pleated skirt, thighhighs, standing, looking at viewer, wind lift, cowboy shot, from below, rooftop, railing, night, cityscape, city lights, skyline, (cinematic lighting:1.2), backlighting, rim light, bokeh, depth of field, glowing, highly detailed, detailed background, absurdres
+masterpiece, best quality, score_7, safe, 1girl, solo, very long hair, twintails, aqua hair, aqua eyes, sailor collar, necktie, pleated skirt, thighhighs, standing, looking at viewer, wind lift, cowboy shot, from below, rooftop, railing, night, cityscape, city lights, skyline, (cinematic lighting:1.2), backlighting, rim light, bokeh, depth of field, glowing, highly detailed, detailed background, absurdres
 ```

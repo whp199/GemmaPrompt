@@ -3,7 +3,7 @@
 skills/h3-base-modes.txt
 skills/h3-full-reference.txt
 
-.miku.pid
+.gemma.pid
 __pycache__/
 *.pyc
 .DS_Store
