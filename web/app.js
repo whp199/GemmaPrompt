@@ -7,6 +7,18 @@ const LS = {
   history: 'gemmaprompt.history',
 };
 
+function readSaved(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    if (Array.isArray(fallback)) return Array.isArray(value) ? value : fallback;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+  } catch { return fallback; }
+}
+function writeSaved(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch { toast('Browser storage is full or unavailable. This session still works.', true); }
+}
+
 const state = {
   profiles: {},
   groups: [],
@@ -15,8 +27,10 @@ const state = {
   tags: [],
   negTags: [],
   images: [],
-  favs: new Set(JSON.parse(localStorage.getItem(LS.favs) || '[]')),
-  history: JSON.parse(localStorage.getItem(LS.history) || '[]'),
+  videos: [],
+  mediaAbort: null,
+  favs: new Set(readSaved(LS.favs, [])),
+  history: readSaved(LS.history, []),
   settings: Object.assign(
     {
       backend: '',
@@ -29,18 +43,19 @@ const state = {
       sysMode: 'append',
       sysExtra: '',
     },
-    JSON.parse(localStorage.getItem(LS.settings) || '{}')
+    readSaved(LS.settings, {})
   ),
   abort: null,
   raw: '',
+  outputMusic: null,
   artistOffset: 0,
   artistQuery: '',
 };
 
-const saveSettings = () => localStorage.setItem(LS.settings, JSON.stringify(state.settings));
-const saveFavs = () => localStorage.setItem(LS.favs, JSON.stringify([...state.favs]));
+const saveSettings = () => writeSaved(LS.settings, state.settings);
+const saveFavs = () => writeSaved(LS.favs, [...state.favs]);
 const saveHistory = () =>
-  localStorage.setItem(LS.history, JSON.stringify(state.history.slice(0, 60)));
+  writeSaved(LS.history, state.history.slice(0, 60));
 
 const esc = (s) =>
   String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -128,6 +143,11 @@ function selectProfile(id) {
   $('#artistBlock').hidden = !p.artists;
   $('#tagBlock').hidden = !p.tagsets && p.dialect !== 'tags';
   $('#h3Block').hidden = p.family !== 'h3';
+  $('#musicBlock').hidden = p.family !== 'music3';
+  $('#visualOptions').hidden = p.family === 'music3';
+  $('#idea').placeholder = p.family === 'music3'
+    ? 'Describe the music: genre, groove, instruments, voice, and how it should develop…'
+    : 'Describe your idea, subject, style, or scene…';
   $('#negWrap').hidden = !p.negative;
   $('#visionBlock').hidden = !p.vision;
   $('#visionBadge').textContent = p.visionRequired ? 'required' : 'vision';
@@ -208,7 +228,7 @@ function fileToImage(file) {
         // Downscale before base64 — a 4k screenshot is otherwise ~8MB of JSON
         // per request and slows the vision encoder down for no benefit.
         const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
-        if (scale === 1 && reader.result.length < 1.4e6) return resolve(reader.result);
+        if (scale === 1 && reader.result.length < 1.4e6 && /^image\/(jpeg|png|webp|gif)$/.test(file.type)) return resolve(reader.result);
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
@@ -224,22 +244,52 @@ function fileToImage(file) {
 async function addFiles(files) {
   const p = state.profiles[state.current];
   if (p && !p.vision) return toast('this model profile has no vision use', true);
-  for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
-    try {
-      state.images.push(await fileToImage(file));
-    } catch {
-      toast('could not read ' + file.name, true);
+  if (state.mediaAbort) return toast('wait for the current import or cancel it first', true);
+  const controller = new AbortController();
+  state.mediaAbort = controller;
+  $('#cancelMedia').hidden = false;
+  const count = Number($('#videoFrames').value);
+  try {
+    for (const file of files) {
+      if (controller.signal.aborted) break;
+      try {
+        if (file.type.startsWith('image/')) {
+          const image = await fileToImage(file);
+          if (!controller.signal.aborted) state.images.push(image);
+        } else if (file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|mkv)$/i.test(file.name)) {
+          $('#mediaStatus').textContent = `Opening ${file.name}…`;
+          const video = await GemmaMedia.videoFrames(file, count, controller.signal, (n, total) => {
+            $('#mediaStatus').textContent = `${file.name}: sampling frame ${n} of ${total}…`;
+          });
+          state.videos.push(video);
+        } else {
+          toast('unsupported reference: ' + file.name, true);
+        }
+        renderThumbs();
+      } catch (err) {
+        if (err.name === 'AbortError') break;
+        toast(file.name + ': ' + (err.message || 'could not read file'), true);
+        $('#mediaStatus').textContent = file.name + ': ' + (err.message || 'could not read file');
+      }
+    }
+  } finally {
+    state.mediaAbort = null;
+    $('#cancelMedia').hidden = true;
+    if (controller.signal.aborted) $('#mediaStatus').textContent = 'Import cancelled. Completed references are ready.';
+    else if (state.images.length || state.videos.length) {
+      $('#mediaStatus').textContent = `${state.images.length} image(s), ${state.videos.length} video(s) ready.`;
+      gemma("References ready. I can analyze them or use them to write your prompt.", 'smug');
     }
   }
+}
+
+function clearReferences() {
+  state.mediaAbort?.abort();
+  state.images = [];
+  state.videos.forEach((video) => URL.revokeObjectURL(video.preview));
+  state.videos = [];
   renderThumbs();
-  if (state.images.length) {
-    const n = state.images.length;
-    gemma(
-      `${n === 1 ? 'One image' : n + ' images'}, got it. I'll build the prompt from what's <em>actually</em> in ${n === 1 ? 'it' : 'them'} — not what you think is in ${n === 1 ? 'it' : 'them'}.`,
-      'smug'
-    );
-  }
+  $('#mediaStatus').textContent = '';
 }
 
 function renderThumbs() {
@@ -254,6 +304,41 @@ function renderThumbs() {
       renderThumbs();
     };
     box.appendChild(el);
+  });
+  state.videos.forEach((video, i) => {
+    const card = document.createElement('div');
+    card.className = 'video-reference';
+    const player = document.createElement('video');
+    player.src = video.preview;
+    player.controls = true;
+    player.preload = 'metadata';
+    const title = document.createElement('div');
+    title.className = 'reference-title';
+    const label = document.createElement('span');
+    label.textContent = `Video ${i + 1} · ${video.name} · ${video.duration.toFixed(2)}s`;
+    const remove = document.createElement('button');
+    remove.className = 'ghost-btn';
+    remove.textContent = 'remove';
+    remove.onclick = () => {
+      URL.revokeObjectURL(video.preview);
+      state.videos.splice(i, 1);
+      renderThumbs();
+    };
+    title.append(label, remove);
+    const strip = document.createElement('div');
+    strip.className = 'filmstrip';
+    video.frames.forEach((frame) => {
+      const figure = document.createElement('figure');
+      const img = document.createElement('img');
+      img.src = frame.url;
+      img.alt = `Video ${i + 1} at ${frame.time.toFixed(3)} seconds`;
+      const caption = document.createElement('figcaption');
+      caption.textContent = `${frame.time.toFixed(3)}s`;
+      figure.append(img, caption);
+      strip.appendChild(figure);
+    });
+    card.append(player, title, strip);
+    box.appendChild(card);
   });
 }
 
@@ -403,6 +488,7 @@ function paint(text) {
   html = html
     .replace(/^(subject_definitions|summary|retention_analysis|detailed_description|integrated_multimodal_description|overall_soundscape|non_diegetic_music):/gm,
       '<span class="sect">$1:</span>')
+    .replace(/^### (Global Metadata|Vocal Details|Arrangement)$/gm, '<span class="sect">### $1</span>')
     .replace(/\[Shot \d+\]/g, '<span class="shot">$&</span>')
     .replace(/&lt;(Subject|Picture|Video|Audio) \d+&gt;/g, '<span class="lbl">$&</span>')
     .replace(/\(S\d+(?:,S\d+)*\)/g, '<span class="lbl">$&</span>')
@@ -437,21 +523,11 @@ const praise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 
 /* ── generate ───────────────────────────────────────────────── */
 
-async function generate() {
-  const idea = $('#idea').value.trim();
-  const p = state.profiles[state.current];
-  if (!idea && !state.images.length) {
-    gemma("...You want me to work from <em>nothing</em>? Type something. <b>girl on a rooftop</b> would do. I'm good, not psychic.", 'idle', true);
-    return toast('describe an idea first', true);
-  }
-  if (p.visionRequired && !state.images.length) {
-    gemma(`<b>${esc(p.label)}</b> edits <em>pictures</em>. As in, one you give it. Drop an image in the reference box and try again.`, 'idle', true);
-    return toast(p.label + ' needs a source image', true);
-  }
-
-  const body = {
+function buildRequest() {
+  const isMusic = state.profiles[state.current]?.family === 'music3';
+  return {
     profile: state.current,
-    idea,
+    idea: $('#idea').value.trim(),
     backend: state.settings.backend,
     apiKey: state.settings.apiKey,
     model: state.settings.model,
@@ -462,7 +538,8 @@ async function generate() {
     systemMode: state.settings.sysMode,
     systemExtra: state.settings.sysExtra,
     unloadAfter: !!state.settings.unloadAfter,
-    images: state.images,
+    images: isMusic ? [] : state.images.slice(),
+    videos: isMusic ? [] : state.videos.map(({ name, duration, frames }) => ({ name, duration, frames })),
     options: {
       artists: state.artists,
       tags: state.tags,
@@ -473,7 +550,14 @@ async function generate() {
       imageMode: $('#imageMode').value,
       rating: state.tags.find((t) => ['safe', 'sensitive', 'questionable', 'explicit'].includes(t)),
     },
+    music: {
+      vocals: $('#musicVocals').value,
+      lyrics: $('#musicLyrics').value,
+      constraints: $('#musicConstraints').value.trim(),
+    },
     h3: {
+      musicMode: $('#h3MusicMode').value,
+      musicDirection: $('#h3MusicDirection').value.trim(),
       mode: $('#h3Mode').value,
       duration: Number($('#h3Duration').value),
       shots: $('#h3Shots').value,
@@ -481,8 +565,32 @@ async function generate() {
       labels: $('#h3Labels').value.trim(),
     },
   };
+}
+
+async function generate(analysisOnly = false) {
+  if (state.abort) return;
+  if (state.mediaAbort) return toast('wait for reference sampling to finish', true);
+  if (!state.current) return toast('profiles are still loading', true);
+  if (!$('#h3Block').hidden && !$('#h3Shots').reportValidity()) return;
+  if (!$('#maxTokens').reportValidity()) return;
+  if (analysisOnly && !state.images.length && !state.videos.length) return toast('add a reference first', true);
+  const idea = $('#idea').value.trim();
+  const p = state.profiles[state.current];
+  if (!idea && (p.family === 'music3' || (!state.images.length && !state.videos.length))) {
+    gemma("...You want me to work from <em>nothing</em>? Type something. <b>girl on a rooftop</b> would do. I'm good, not psychic.", 'idle', true);
+    return toast('describe an idea first', true);
+  }
+  if (!analysisOnly && p.visionRequired && !state.images.length) {
+    gemma(`<b>${esc(p.label)}</b> edits <em>pictures</em>. As in, one you give it. Drop an image in the reference box and try again.`, 'idle', true);
+    return toast(p.label + ' needs a source image', true);
+  }
+
+  const body = { ...buildRequest(), analysisOnly };
 
   state.raw = '';
+  state.outputMusic = null;
+  $('#musicOutputTools').hidden = true;
+  $('#outFoot').classList.remove('show');
   $('#thinkOut').textContent = '';
   $('#thinkWrap').hidden = true;
   $('#negOut').hidden = true;
@@ -491,23 +599,32 @@ async function generate() {
   $('#stop').hidden = false;
   setStatus('busy', 'generating…');
   gemma(
-    state.images.length
+    (state.images.length || state.videos.length)
       ? "Hmph. Let me actually <em>look</em> at this properly — unlike some people."
       : `Fine. Rewriting this the way <b>${esc(p.label)}</b> actually wants it. Don't rush me.`,
     'thinking'
   );
 
+  let failure = '';
+  let completed = false;
+  let cancelled = false;
+  let truncated = false;
   const started = Date.now();
   state.abort = new AbortController();
 
   try {
+    const encoded = JSON.stringify(body);
+    if (new Blob([encoded]).size > 64 * 1024 * 1024) throw new Error('References exceed the 64 MB request budget. Remove references or sample fewer video frames.');
     const resp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: encoded,
       signal: state.abort.signal,
     });
-    if (!resp.ok) throw new Error('server said ' + resp.status);
+    if (!resp.ok) {
+      const detail = await resp.json().catch(() => ({}));
+      throw new Error(detail.error || 'server said ' + resp.status);
+    }
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -533,14 +650,16 @@ async function generate() {
           state.raw += msg.text;
           renderOut();
           $('#out').parentElement.scrollTop = $('#out').parentElement.scrollHeight;
+        } else if (msg.type === 'status') {
+          setStatus('busy', msg.text);
         } else if (msg.type === 'reasoning') {
           $('#thinkWrap').hidden = false;
           $('#thinkOut').textContent += msg.text;
         } else if (msg.type === 'error') {
-          $('#out').innerHTML = `<span class="err">${esc(msg.text)}</span>`;
-          state.raw = '';
-          gemma("Your backend isn't answering. That's <em>your</em> setup, not my problem — details on the right.", 'idle', true);
-          toast('backend error', true);
+          failure = msg.text;
+        } else if (msg.type === 'done') {
+          completed = true;
+          truncated = msg.finish_reason === 'length';
         } else if (msg.type === 'unloading') {
           toast('freeing VRAM…');
         } else if (msg.type === 'unloaded') {
@@ -556,34 +675,49 @@ async function generate() {
       }
     }
   } catch (err) {
-    if (err.name !== 'AbortError') {
-      $('#out').innerHTML = `<span class="err">${esc(err.message)}</span>`;
-      toast(err.message, true);
-    }
+    cancelled = err.name === 'AbortError';
+    if (!cancelled) failure = err.message;
   } finally {
     state.abort = null;
     $('#go').disabled = false;
     $('#stop').hidden = true;
     renderOut();
-    setStatus('ok', $('#statusText').dataset.idle || 'ready');
+    if (!completed && !cancelled && !failure) failure = 'The backend stream ended before completion. Please retry.';
+    if (failure) {
+      const error = document.createElement('div');
+      error.className = 'err';
+      error.textContent = failure;
+      $('#out').appendChild(error);
+      toast(failure, true);
+    }
+    const incomplete = failure || cancelled || truncated;
+    setStatus(incomplete ? 'bad' : 'ok', failure ? 'error' : cancelled ? 'stopped' : truncated ? 'output limit reached' : $('#statusText').dataset.idle || 'ready');
+    if (incomplete) gemma(cancelled ? 'Stopped. Any partial output is kept below.' : truncated ? 'The output token limit cut this short. Increase Max tokens in Settings and generate again.' : 'The request failed. The details are in the output panel.', 'idle', true);
 
     const elapsed = ((Date.now() - started) / 1000).toFixed(1);
     const [main] = splitNegative(state.raw);
     if (main.trim()) {
       const where =
-        state.profiles[state.current].family === 'h3'
+        p.family === 'music3'
+          ? "your music workflow's <b>caption / instructions</b> field"
+          : p.family === 'h3'
           ? "the <b>Input Text (Prompt)</b> node in your H3 workflow"
           : "ComfyUI's <b>positive</b> box";
-      gemma(`${praise()} Hit <b>copy</b> and put it in ${where}.`, Math.random() < 0.3 ? 'fluster' : 'proud');
+      if (!incomplete) gemma(analysisOnly ? 'Reference analysis ready. Use these notes to refine your idea, then hit <b>Fix my prompt</b>.' : `${praise()} Hit <b>copy</b> and put it in ${where}.`, Math.random() < 0.3 ? 'fluster' : 'proud');
       const words = main.trim().split(/\s+/).length;
-      $('#outFoot').textContent = `${main.length} chars · ${words} words · ${elapsed}s · ${state.profiles[state.current].label}`;
+      $('#outFoot').textContent = `${main.length} chars · ${words} words · ${elapsed}s · ${p.label}${incomplete ? ' · partial' : ''}`;
       $('#outFoot').classList.add('show');
-      state.history.unshift({
+      if (!incomplete && p.family === 'music3') {
+        state.outputMusic = { lyrics: body.music.lyrics, caption: state.raw };
+        $('#musicOutputTools').hidden = false;
+      }
+      if (!incomplete) state.history.unshift({
         at: Date.now(),
-        profile: state.current,
-        label: state.profiles[state.current].label,
+        profile: body.profile,
+        label: p.label,
         idea,
         out: state.raw,
+        music: state.outputMusic,
       });
       saveHistory();
     }
@@ -682,6 +816,7 @@ async function refreshGpu() {
 }
 
 async function unloadModel() {
+  if (state.abort) return toast('stop generation before unloading the model', true);
   toast('unloading…');
   const resp = await fetch('/api/unload', {
     method: 'POST',
@@ -719,7 +854,10 @@ function renderHistory() {
       `<div class="hist-idea">${esc(item.idea || '(image only)')}</div>` +
       `<div class="hist-out">${esc(item.out.slice(0, 320))}</div>`;
     el.onclick = () => {
+      if (state.abort) return toast('stop generation before restoring history', true);
       state.raw = item.out;
+      state.outputMusic = item.music || null;
+      $('#musicOutputTools').hidden = !state.outputMusic;
       renderOut();
       $('#historyDrawer').hidden = true;
       toast('restored');
@@ -759,7 +897,7 @@ const TOUR = [
   {
     el: '#visionBlock',
     title: 'Or just show me',
-    text: "Drop an image in and I'll actually look at it. <b>Inform</b> builds on it, <b>reproduce</b> writes a prompt " +
+    text: "Drop an image or video in and I'll actually look at it. <b>Inform</b> builds on it, <b>reproduce</b> writes a prompt " +
           "that recreates it, <b>style only</b> takes the look and leaves your subject alone.",
     mood: 'point',
     when: () => !$('#visionBlock').hidden,
@@ -907,8 +1045,24 @@ function init() {
   seg('#thinkMode', 'thinking', (v) => ($('#prefillWrap').hidden = v !== 'prefill'));
   seg('#sysMode', 'sysMode');
 
+  $('#h3MusicMode').onchange = () => {
+    $('#h3MusicWrap').hidden = $('#h3MusicMode').value !== 'custom';
+  };
+  $('#copyMusicLyrics').onclick = () => {
+    if (!state.outputMusic) return;
+    navigator.clipboard.writeText(state.outputMusic.lyrics).then(() => toast('original lyrics copied'));
+  };
+  $('#copyMusicJson').onclick = () => {
+    if (!state.outputMusic) return;
+    navigator.clipboard.writeText(JSON.stringify({ instructions: state.outputMusic.caption, input: state.outputMusic.lyrics }, null, 2))
+      .then(() => toast('caption and lyrics JSON copied'));
+  };
+
   // generation
-  $('#go').onclick = generate;
+  $('#go').onclick = () => generate();
+  $('#analyzeRefs').onclick = () => generate(true);
+  $('#clearRefs').onclick = clearReferences;
+  $('#cancelMedia').onclick = () => state.mediaAbort?.abort();
   $('#stop').onclick = () => state.abort && state.abort.abort();
   $('#clearIdea').onclick = () => {
     $('#idea').value = '';
@@ -1058,20 +1212,11 @@ function init() {
     const resp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profile: state.current,
-        idea: $('#idea').value,
-        dryRun: true,
-        systemMode: state.settings.sysMode,
-        systemExtra: state.settings.sysExtra,
-        thinking: state.settings.thinking,
-        options: { artists: state.artists, tags: state.tags, negative: $('#optNegative').checked },
-        h3: { mode: $('#h3Mode').value, duration: Number($('#h3Duration').value) },
-      }),
+      body: JSON.stringify({ ...buildRequest(), dryRun: true }),
     });
     const data = await resp.json();
     $('#dryOut').hidden = false;
-    $('#dryOut').textContent = data.messages[0].content;
+    $('#dryOut').textContent = data.error || data.messages[0].content;
   };
 
   $('#clearHistory').onclick = () => {

@@ -11,6 +11,10 @@
     {
       "id": "video",
       "label": "Video"
+    },
+    {
+      "id": "music",
+      "label": "Music"
     }
   ],
   "profiles": {
@@ -192,6 +196,21 @@
       "meta": "ltx-2.3-22b-dev-fp8",
       "temperature": 0.85,
       "gemma": "LTX wants motion stated plainly. What moves, which way, how fast. Simple enough that even you can manage the idea part."
+    },
+    "music3": {
+      "label": "MiniMax Music 3",
+      "sub": "music · structured caption",
+      "group": "music",
+      "family": "music3",
+      "dialect": "music",
+      "negative": false,
+      "artists": false,
+      "tagsets": false,
+      "vision": false,
+      "temperature": 0.7,
+      "maxTokens": 4096,
+      "meta": "Global Metadata · Vocal Details · Arrangement",
+      "gemma": "Describe the sound, give me your section tags, and I'll write a proper music caption. Instrumental means instrumental — no surprise choir."
     }
   }
 }

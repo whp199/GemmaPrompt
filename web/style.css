@@ -864,3 +864,15 @@ body::before {
 .sect { text-transform: none; letter-spacing: 0; font: 700 12.5px/1 var(--sans); }
 .drawer-panel { border-radius: 20px 0 0 20px; }
 .toast { font-weight: 600; }
+
+.reference-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.reference-tools label { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.video-reference { width: 100%; border: 1px solid var(--line-lit); border-radius: var(--r-s); padding: 8px; min-width: 0; }
+.video-reference video { width: 100%; max-height: 180px; background: #000; }
+.video-reference .reference-title { display: flex; align-items: center; gap: 8px; margin: 6px 0; overflow-wrap: anywhere; }
+.video-reference .reference-title span { flex: 1; min-width: 0; }
+.video-reference .filmstrip { display: flex; gap: 5px; overflow-x: auto; }
+.video-reference figure { flex: 0 0 82px; margin: 0; }
+.video-reference figure img { width: 82px; height: 60px; object-fit: contain; background: #000; }
+.video-reference figcaption { text-align: center; font: 10px var(--mono); color: var(--text-dim); }
+#mediaStatus { margin-top: 8px; color: var(--sky); }

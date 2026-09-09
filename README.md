@@ -84,7 +84,7 @@ run it again. Steps for controls that aren't relevant to your current model are
 skipped automatically.
 
 ### Model profiles
-Eleven profiles wired to the workflows in
+Image and video profiles wired to the workflows in
 `ComfyUI/user/default/workflows/2026-current/`. Picking one swaps the loaded
 skill, the sensible temperature, the available options, and what Gemma-chan tells you
 about how that model likes to be talked to.
@@ -110,12 +110,67 @@ with the upstream reference guides shipped verbatim in `skills/`. All five modes
 verbatim dialogue placement inside `<d>` tags, and reference-label assignment.
 Output is syntax-highlighted so you can see shots, labels and dialogue at a glance.
 
+### Video references and reference analysis
+
+Drop or choose images and videos together. Videos decode locally in the browser;
+only downscaled JPEG samples go to your configured vision model. Choose 4, 8
+(default), 16, or 32 frames **before importing**. Each video has playback controls,
+a timestamped filmstrip, and a remove button. Imports can be cancelled. Browser
+codec support varies; MP4/H.264 and WebM are good starting points.
+
+**Analyze references** produces visual notes about appearance, movement, camera,
+style, and pacing. **Fix my prompt** uses the references directly in the chosen
+model's dialect. H3 keeps video frames grouped under `<Video N>` labels and
+separates source timestamps from output cut times. Image-editing and I2V profiles
+still require an actual source image.
+
+Analysis uses evenly spaced frames, not every frame, and does not process audio.
+Short cuts can fall between samples. More samples require more model context;
+use fewer frames or increase the loaded model's context if it runs out. Requests
+have a 64 MB payload budget, independent of shot count.
+
+**H3 Shots** accepts any positive whole number; leave it blank for auto. There is
+no shot-count cap. Increase **Settings → Max tokens** for long shot lists; a
+truncated response is clearly marked and is not saved as a completed prompt.
+Actual model output remains subject to its context and output capacity.
+
 ### Vision
 Attach reference images and the LLM actually looks at them — three modes:
 *inform the prompt*, *reproduce this image*, *style only*. For H3 Ref2VA this is
 how `subject_definitions` gets written from what's really in your reference
 frames rather than from generic guesses. Images are downscaled client-side
 before they're sent.
+
+### MiniMax Music 3 and H3 soundtrack direction
+
+Choose **Music → MiniMax Music 3** for music captions. Describe the music in the
+idea box, optionally add **Lyrics & section tags**, set **Vocals**, and enter
+constraints such as tempo, required instruments, or exclusions. The generated
+caption contains **Global Metadata**, **Vocal Details**, and **Arrangement**.
+Bracketed tags guide section changes; lyric lines are never rewritten into the
+caption. Instrumental mode excludes vocals, including conflicting lyric tags.
+
+The profile reads your installed `~/.claude/skills/music-caption-rewriter` skill.
+To use another installation, set `GEMMA_MUSIC_SKILL` to that skill's directory
+before starting the server. The same configured LLM chooses up to two style
+families from the genre router, compares only those family indexes, reads up to
+three selected templates, then writes a new caption. No template database,
+embeddings, extra dependencies, or external music API is used. The UI reports
+progress during selection. Selection uses [LM Studio-compatible structured JSON](https://lmstudio.ai/docs/developer/openai-compat/structured-output) when supported, with local validation of every selected file. The music skill must be installed; a missing file
+produces a message with its path and the configuration option.
+
+**copy** copies the caption. **copy original lyrics** keeps the original lyrics
+and tags unchanged; **copy caption + lyrics JSON** exports `instructions` (the
+caption) and `input` (the original lyrics). These buttons use the inputs belonging
+to that completed result, even if you subsequently edit the form. Music results
+and their associated lyrics can also be restored from history.
+
+For **MiniMax H3 video**, choose **Background score → describe the soundtrack**
+and enter instruments, pulse, development, and vocal exclusions. Those directions
+go into H3's `non_diegetic_music` field while preserving its video section format.
+**No score** sets that field to `N/A` and preserves dialogue and scene sounds.
+Music 3 captions and H3 video prompts use different output formats; neither mode
+renders audio itself.
 
 ### Thinking control
 Reasoning is **always stripped** from the copied prompt and shown separately in a
@@ -129,8 +184,8 @@ prompt** dumps exactly what gets sent, so nothing is hidden from you.
 
 ### VRAM handoff
 The LLM and your diffusion model compete for the same card. The VRAM pill in the
-header unloads the LLM on demand, or tick **unload after each prompt** and the
-GPU is handed back the moment your prompt is written. Works with LM Studio (via
+header unloads the selected LLM on demand, or tick **unload after each prompt** and the
+GPU is handed back the moment your prompt is written. Works with local LM Studio (via
 the `lms` CLI) and Ollama (`keep_alive: 0`).
 
 ---
@@ -192,3 +247,17 @@ Environment equivalents: `GEMMA_BACKEND`, `GEMMA_API_KEY`, `GEMMA_TAGS`,
 
 Credit: the H3 reference guides in `skills/` are MiniMax's, taken unmodified
 from the MiniMax-H3 repository.
+
+## Development checks
+
+```bash
+python3 -m unittest discover -s tests -v
+node --test tests/media.test.js
+node --check web/app.js
+```
+
+Regression coverage includes video grouping and timestamps, unrestricted shot
+counts, malformed requests, stream termination, reasoning prefill, negative tags,
+selected-model unloading, music reference selection, lyric/tag preservation,
+and music/video format isolation. Live model tests are optional; the test suite uses
+a local mock backend and never unloads real models.

@@ -60,24 +60,35 @@
       <textarea id="idea" class="idea" rows="5"
         placeholder="a girl on a rooftop at night, city lights below, dramatic&#10;&#10;Rough is fine. That's literally what I'm here for."></textarea>
 
-      <!-- reference images -->
+      <!-- image and video references -->
       <div class="block" id="visionBlock">
         <div class="block-head">
-          <h3>Show me a picture</h3>
+          <h3>Show me a reference</h3>
           <span class="badge" id="visionBadge">vision</span>
           <div class="spacer"></div>
           <select id="imageMode" class="mini-select">
             <option value="inform">inform the prompt</option>
-            <option value="describe">reproduce this image</option>
+            <option value="describe">reproduce the reference</option>
             <option value="style">style only</option>
           </select>
-          <button class="ghost-btn" id="addImage">+ drop one in</button>
+          <button class="ghost-btn" id="addImage">+ add files</button>
         </div>
         <div class="dropzone" id="dropzone">
           <div class="thumbs" id="thumbs"></div>
-          <p class="dz-hint">drop, paste, or click <b>+ drop one in</b> — I'll actually look at it</p>
+          <p class="dz-hint">drop, paste, or click <b>+ add files</b> — images and videos stay local</p>
         </div>
-        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <div class="reference-tools">
+          <label>Frames per video <select id="videoFrames" class="mini-select">
+            <option value="4">4 · light</option><option value="8" selected>8 · balanced</option>
+            <option value="16">16 · detailed</option><option value="32">32 · dense</option>
+          </select></label>
+          <button class="ghost-btn" id="analyzeRefs">analyze references</button>
+          <button class="ghost-btn" id="clearRefs">clear references</button>
+          <button class="ghost-btn" id="cancelMedia" hidden>cancel import</button>
+        </div>
+        <p class="dz-hint">Video analysis uses evenly spaced frames with timestamps. Audio is not analyzed; brief cuts may fall between samples. More frames need more model context.</p>
+        <p class="dz-hint" id="mediaStatus" role="status" aria-live="polite"></p>
+        <input type="file" id="fileInput" accept="image/*,video/*,.mp4,.webm,.mov,.m4v,.mkv" multiple hidden>
       </div>
 
       <!-- H3 controls -->
@@ -102,21 +113,46 @@
         </div>
         <div class="grid2">
           <label>Shots
-            <select id="h3Shots">
-              <option value="">auto</option>
-              <option value="1">1 — single continuous</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
+            <input type="number" id="h3Shots" min="1" step="1" placeholder="auto" aria-describedby="shotsHint">
+            <span class="lbl-hint" id="shotsHint">Blank = auto. Any positive whole number; allow enough output tokens for long shot lists.</span>
           </label>
           <label>Reference labels
-            <input type="text" id="h3Labels" placeholder="e.g. img 1 = Subject 1, img 2 = Picture 1 first frame">
+            <input type="text" id="h3Labels" placeholder="e.g. img 1 = Subject 1, img 2 = Picture 1 first frame, video 1 = Video 1">
           </label>
         </div>
+        <label>Background score
+          <select id="h3MusicMode">
+            <option value="auto">auto</option>
+            <option value="none">no score</option>
+            <option value="custom">describe the soundtrack</option>
+          </select>
+        </label>
+        <label id="h3MusicWrap" hidden>Soundtrack direction
+          <textarea id="h3MusicDirection" rows="3" placeholder="e.g. muted piano and soft strings, slow pulse, swell at the final cut; no vocals"></textarea>
+        </label>
         <label>Dialogue <span class="lbl-hint">verbatim, kept inside &lt;d&gt; tags</span>
           <textarea id="h3Dialogue" rows="2" placeholder="GET READY TO MEET YOUR MAKER"></textarea>
         </label>
+      </div>
+
+      <!-- music caption controls -->
+      <div class="block" id="musicBlock" hidden>
+        <div class="block-head"><h3>Music caption</h3><span class="badge alt">Music 3</span></div>
+        <p class="sect-hint">Describe the music in the idea box. The caption includes Global Metadata, Vocal Details, and Arrangement.</p>
+        <label>Vocals
+          <select id="musicVocals">
+            <option value="auto">follow my description</option>
+            <option value="instrumental">instrumental only</option>
+            <option value="vocal">include vocals</option>
+          </select>
+        </label>
+        <label>Lyrics &amp; section tags <span class="lbl-hint">optional · original lyrics stay separate from the caption</span>
+          <textarea id="musicLyrics" rows="6" placeholder="[Intro: solo piano]&#10;[Verse: intimate delivery]&#10;Your lyrics…&#10;[Chorus: fuller drums]&#10;[Outro: fade piano]"></textarea>
+        </label>
+        <label>Music constraints <span class="lbl-hint">optional</span>
+          <textarea id="musicConstraints" rows="3" placeholder="e.g. 80–90 BPM, no strings, warm female alto, end with solo piano"></textarea>
+        </label>
+        <p class="sect-hint">Uses your installed music-caption-rewriter skill. Chooses a style family and a few compatible references before writing. Lyric lines are never rewritten into the caption.</p>
       </div>
 
       <!-- artists -->
@@ -140,7 +176,7 @@
       </div>
 
       <!-- options -->
-      <div class="block">
+      <div class="block" id="visualOptions">
         <div class="block-head"><h3>Fiddly bits</h3></div>
         <div class="opt-row">
           <label class="check" id="negWrap"><input type="checkbox" id="optNegative"> write me a negative too</label>
@@ -196,6 +232,10 @@ New here? Hit <b>★ tour</b> up top and I'll show you around. Try not to break 
         <div class="neg-head">negative <button class="ghost-btn" id="copyNeg">copy</button></div>
         <pre id="negText"></pre>
       </div>
+    </div>
+    <div class="reference-tools" id="musicOutputTools" hidden>
+      <button class="ghost-btn" id="copyMusicLyrics">copy original lyrics</button>
+      <button class="ghost-btn" id="copyMusicJson">copy caption + lyrics JSON</button>
     </div>
     <div class="out-foot" id="outFoot"></div>
   </section>
@@ -305,7 +345,7 @@ New here? Hit <b>★ tour</b> up top and I'll show you around. Try not to break 
           <input type="range" id="temp" min="0" max="1.5" step="0.05" value="0.85">
         </label>
         <label class="stack">Max tokens
-          <input type="number" id="maxTokens" min="256" max="16384" step="256" value="2048">
+          <input type="number" id="maxTokens" min="256" step="256" value="2048">
         </label>
       </div>
 
@@ -354,6 +394,7 @@ New here? Hit <b>★ tour</b> up top and I'll show you around. Try not to break 
 
 <div class="toast" id="toast" hidden></div>
 
+<script src="/media.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
